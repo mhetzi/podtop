@@ -38,7 +38,7 @@ type UIState struct {
 }
 
 func podman(app *AppState, exit chan<- bool, update_received chan<- bool) {
-	cmd := buildCommand(app.mode, app.file, app.container, app.escapeBox)
+	cmd := buildCommand(app)
 	app.lock.Lock()
 	app.message = fmt.Sprintf("Running command: %v", cmd)
 	app.lock.Unlock()
@@ -339,27 +339,32 @@ func renderUI(app *AppState, out chan<- bool, update chan bool) {
 	}
 }
 
-func buildCommand(mode Mode, file, container string, escape_box bool) *exec.Cmd {
-	switch mode {
+func buildCommand(app *AppState) *exec.Cmd {
+	app.lock.Lock()
+	defer app.lock.Unlock()
+
+	intv := app.interval.Seconds()
+
+	switch app.mode {
 	case ModeCompose:
-		if escape_box {
-			return exec.Command("host-spawn", "podman-compose", "-f", file, "stats", "--format", "json")
+		if app.escapeBox {
+			return exec.Command("host-spawn", "podman-compose", "-f", app.file, "stats", "--format", "json", "--interval", fmt.Sprintf("%g", intv))
 		} else {
-			return exec.Command("podman-compose", "-f", file, "stats", "--format", "json")
+			return exec.Command("podman-compose", "-f", app.file, "stats", "--format", "json", "--interval", fmt.Sprintf("%g", intv))
 		}
 	case ModeOne:
-		if container == "" {
-			container = "my-container"
+		if app.container == "" {
+			app.container = "my-container"
 		}
-		if escape_box {
-			return exec.Command("host-spawn", "podman", "stats", "--format", "json", container)
+		if app.escapeBox {
+			return exec.Command("host-spawn", "podman", "stats", "--format", "json", app.container, "--interval", fmt.Sprintf("%g", intv))
 		}
-		return exec.Command("podman", "stats", "--format", "json", container)
+		return exec.Command("podman", "stats", "--format", "json", app.container, "--interval", fmt.Sprintf("%g", intv))
 	default:
-		if escape_box {
-			return exec.Command("host-spawn", "podman", "stats", "--all", "--format", "json")
+		if app.escapeBox {
+			return exec.Command("host-spawn", "podman", "stats", "--all", "--format", "json", "--interval", fmt.Sprintf("%g", intv))
 		} else {
-			return exec.Command("podman", "stats", "--all", "--format", "json")
+			return exec.Command("podman", "stats", "--all", "--format", "json", "--interval", fmt.Sprintf("%g", intv))
 		}
 	}
 }

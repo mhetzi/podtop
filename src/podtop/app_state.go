@@ -15,6 +15,7 @@ type AppState struct {
 	mode          Mode
 	historyLen    int
 	refresh       time.Duration
+	interval      time.Duration
 	file          string
 	container     string
 	escapeBox     bool
@@ -31,6 +32,7 @@ func (app *AppState) ParseCmdLine() {
 		refresh    = flag.Duration("refresh", 2*time.Second, "UI refresh interval")
 		mode       = flag.String("mode", "all", "compose|all|one")
 		escape_box = flag.Bool("escape-box", false, "escape distrobution box (for podman-compose or podman)")
+		interval   = flag.Duration("interval", 5*time.Second, "podman report interval")
 	)
 	flag.Parse()
 
@@ -38,6 +40,7 @@ func (app *AppState) ParseCmdLine() {
 	app.file = *file
 	app.historyLen = *history
 	app.refresh = *refresh
+	app.interval = *interval
 	app.mode = Mode(*mode)
 	app.escapeBox = *escape_box
 
